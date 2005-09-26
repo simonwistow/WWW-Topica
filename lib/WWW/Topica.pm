@@ -18,7 +18,7 @@ use WWW::Topica::Index;
 use WWW::Topica::Mail;
 use WWW::Topica::Reply;
 
-$VERSION    = '0.4';
+$VERSION    = '0.5';
 my $USER_AGENT = 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)';
 
 
