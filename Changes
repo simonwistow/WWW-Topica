@@ -1,0 +1,17 @@
+Mon Oct 25 15:17:34 BST 2004 - v 0.3
+    - Fix the date handling
+    - Add a message-id
+    - Better docs
+    - Better command line options for topica2mail
+    - Periodic relogging in to defeat session timeout
+    - Strip HTML from subjects
+
+Sat Oct 23 12:15:36 BST 2004 - v 0.2
+    - Force URL to be absolute on redirect
+    - Better recovery from error handling
+    - Add first and last options to new
+    - Turn it into an iterator
+
+Thu Oct 21 14:37:17 BST 2004 - v 0.1
+    - Initial release
+
