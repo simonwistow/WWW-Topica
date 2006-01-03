@@ -18,7 +18,7 @@ use WWW::Topica::Index;
 use WWW::Topica::Mail;
 use WWW::Topica::Reply;
 
-$VERSION    = '0.5';
+$VERSION    = '0.6';
 my $USER_AGENT = 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)';
 
 
@@ -68,8 +68,8 @@ sub new {
     my %opts  = @_;
     
     die "You must pass a list\n" unless defined $opts{list};
-    die "You must pass an email\n" unless defined $opts{email};
-    die "You must pass a password\n" unless defined $opts{password};
+    #die "You must pass an email\n" unless defined $opts{email};
+    #die "You must pass a password\n" unless defined $opts{password};
 
 
     $opts{_next} = $opts{first} || 0;
@@ -96,8 +96,7 @@ sub mail {
     # first time ever
     unless ($self->{_index}) 
     {
-        $self->login;
-    
+           $self->login;
         print STDERR "Beginning to collect mails\n" if $self->{debug};
     }
 
@@ -135,17 +134,20 @@ sub mail {
     GET: my $mess_id = shift @{$self->{_message_ids}};    
     goto INDEX unless defined $mess_id;    
 
-    # the mail has some information and also provides a link to the reply ...
+    # the mail has some information and also provides a link to the reply if we're logged in...
     my $mail_html = $self->fetch_mail($mess_id);
     goto GET unless $mail_html; 
     my $mail  = WWW::Topica::Mail->new($mail_html, $mess_id);
 
-    # which has other information (like the un-htmled mail and the email address) ...            
-    my $reply_html = $self->fetch_reply($mess_id,$mail->eto);
-    goto GET unless $reply_html;
-    my $reply = WWW::Topica::Reply->new($reply_html, $mess_id, $mail->eto);
+    my $reply;
 
-            
+    # which has other information (like the un-htmled mail and the email address) ...            
+    if ($mail->eto) {
+        my $reply_html = $self->fetch_reply($mess_id,$mail->eto) if defined $mail->eto;
+        goto GET unless $reply_html;
+        $reply = WWW::Topica::Reply->new($reply_html, $mess_id, $mail->eto);
+    }
+               
     # now build the rfc822 mail string
     return $self->build_rfc822($mail, $reply);        
 
@@ -164,15 +166,30 @@ Builds the loader automatically.
 sub login {
     my $self = shift;
 
-    print STDERR "Logging in using ".$self->{email}."/".$self->{password}."\n" if $self->{debug};
-    
     $self->build_loader;
+
+    my $anon =  !defined $self->{email} || !defined $self->{password};
+
+
+    if ($anon) {
+        $self->{email} = $self->{password} = 'anonymous';
+    }
+
+
+
+    print STDERR "Logging in using ".$self->{email}."/".$self->{password}."\n" if $self->{debug};
 
     return if $self->{local};
 
-    (undef) = $self->fetch_page("http://lists.topica.com/");
-    (undef) = $self->fetch_page("http://lists.topica.com/list.html");
-    (undef) = $self->fetch_page("http://lists.topica.com/perl/login.pl?email=".$self->{email}."&password=".$self->{password});
+    if (!$anon) {
+        (undef) = $self->fetch_page("http://lists.topica.com/");
+        (undef) = $self->fetch_page("http://lists.topica.com/list.html");
+        (undef) = $self->fetch_page("http://lists.topica.com/perl/login.pl?email=".$self->{email}."&password=".$self->{password});
+    }
+
+    
+
+
 
     # store when we logged in so that we can relog in again after an hour
     $self->{_logged_in} = time;        
@@ -189,10 +206,11 @@ Retrieve the html of the index page with the given offset.
 sub fetch_index {
     my $self   = shift;
     my $offset = shift;
+    my $list   = $self->{list};
     
-    print STDERR "Fetching index $offset\n" if $self->{debug};
+    print STDERR "Fetching index $offset of list ${list}\n" if $self->{debug};
 
-    my $url = "http://lists.topica.com/lists/UKR/read?sort=d&start=$offset";
+    my $url = "http://lists.topica.com/lists/${list}/read?sort=d&start=$offset";
     
     if ($self->{local}) {
         $url = "file://".cwd."/t/local_files/";
@@ -220,10 +238,12 @@ Retrieve the html of a the message page with the given id.
 sub fetch_mail {
     my $self = shift;
     my $id   = shift;
+    my $list = $self->{list};
+
 
     print STDERR "\tFetching mail $id\n" if $self->{debug};
     
-    my $url = "http://lists.topica.com/lists/UKR/read/message.html?mid=$id";
+    my $url = "http://lists.topica.com/lists/${list}/read/message.html?mid=$id";
     
     if ($self->{local}) {
         $url = "file://".cwd."/t/local_files/mail.html";    
@@ -244,10 +264,12 @@ sub fetch_reply {
     my $self   = shift;
     my $id     = shift;
     my $eto    = shift;
+    my $list   = $self->{list};
+
     print STDERR "\t\tFetching reply $id - $eto\n" if $self->{debug};
 
 
-    my $url = "http://lists.topica.com/lists/UKR/read/post.html?mode=replytosender&mid=$id&eto=$eto";
+    my $url = "http://lists.topica.com/lists/${list}/read/post.html?mode=replytosender&mid=$id&eto=$eto";
     
     if ($self->{local}) {
         $url = "file://".cwd."/t/local_files/reply.html";    
@@ -271,12 +293,17 @@ sub build_rfc822 {
     my $mail   = shift;
     my $reply  = shift;
 
+    my $list   = $self->{list};
+
     my $mid    = $mail->id;
-    my $rid    = $reply->id;
-    my $eto    = $reply->eto;
 
     my $name   = decode_entities($mail->from);
-    my $email  = decode_entities($reply->email);
+    my $email  = "";
+    if (defined $reply) {
+        $email = decode_entities($reply->email);
+    } else {
+        $email = "${list}\@topica.com";
+    }
 
     # we may have been confused and got name and email mixed up    
     if ($name =~ /@/ && $email !~ /@/) {
@@ -298,7 +325,7 @@ sub build_rfc822 {
     # get the subject from somewhere - mail preferably because then it 
     # doesn't have the Re: which we don't know whether to strip out or not
     my $subject = $mail->subject;
-       $subject = $reply->subject if $subject =~ /^\s*$/;
+       $subject = $reply->subject if defined $reply && $subject =~ /^\s*$/;
 
     # remove newlines
     $subject    =~  s/[\n\r]//gs;
@@ -321,16 +348,25 @@ sub build_rfc822 {
     # we should probably use Email::Simple::Creator for this
     my $string = "";
 
-
+    my $body   = "";
+    if ($reply) {
+        $body = $reply->body;
+    }else { 
+        $body = $self->{scrubber}->scrub($mail->body) || "";
+    }
 
     $string .= "Date: ".format_date($time)."\n";
-    $string .= "To: ".$self->{list}."\@topica.com\n";
+    $string .= "To: ${list}\@topica.com\n";
     $string .= "From: $from\n";
     $string .= "Message-ID: $message_id\n";
-    $string .= "X-TopicaMailUrl: http://lists.topica.com/lists/UKR/read/message.html?mid=${mid}\n";
-    $string .= "X-TopicaReplyUrl: http://lists.topica.com/lists/UKR/read/post.html?mode=replytosender&mid=${rid}&eto=${eto}\n";
+    $string .= "X-TopicaMailUrl: http://lists.topica.com/lists/${list}/read/message.html?mid=${mid}\n";
+    if ($reply) {
+        my $rid    = $reply->id;
+        my $eto    = $reply->eto;
+        $string .= "X-TopicaReplyUrl: http://lists.topica.com/lists/${list}/read/post.html?mode=replytosender&mid=${rid}&eto=${eto}\n";
+    }
     $string .= "Subject: $subject\n";
-    $string .= "\n".$reply->body."\n\n";
+    $string .= "\n$body\n\n";
 
     return $string;
 }
