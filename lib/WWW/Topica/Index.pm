@@ -59,12 +59,12 @@ sub parse {
     my ($self, $html) = @_;
     
 
+    my $list = $self->{list};
+    ($self->{prev}) = (    $html =~ m!<A HREF="/lists/[^/]+/read\?sort\=d\&start\=(\d+)"><IMG SRC="http://lists.topica.com/art/rewind\.gif"!m );
     
-    ($self->{prev}) = (    $html =~ m!<A HREF="/lists/UKR/read\?sort\=d\&start\=(\d+)"><IMG SRC="http://lists.topica.com/art/rewind\.gif"!m );
+    ($self->{next}) = (    $html =~ m!<A HREF="/lists/[^/]+/read\?sort\=d\&start\=(\d+)"><IMG SRC="http://lists.topica.com/art/fastForward\.gif"!m );
     
-    ($self->{next}) = (    $html =~ m!<A HREF="/lists/UKR/read\?sort\=d\&start\=(\d+)"><IMG SRC="http://lists.topica.com/art/fastForward\.gif"!m );
-    
-    my (@message_ids) = ($html =~ m!/lists/UKR/read/message\.html\?mid\=(\d+)!gs);
+    my (@message_ids) = ($html =~ m!/lists/[^/]+/read/message\.html\?mid\=(\d+)!gs);
 
 
     $self->{_message_ids} = \@message_ids;
