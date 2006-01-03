@@ -319,7 +319,7 @@ sub build_rfc822 {
     } elsif ($email =~ /@/) {
         $from = "<$email>";
     } else {
-        $from = "$name <>";
+        $from = "$name <${list}\@topica.com>";
     }
     
     # get the subject from somewhere - mail preferably because then it 
@@ -349,7 +349,7 @@ sub build_rfc822 {
     my $string = "";
 
     my $body   = "";
-    if ($reply) {
+    if ($reply && defined $reply->body) {
         $body = $reply->body;
     }else { 
         $body = $self->{scrubber}->scrub($mail->body) || "";

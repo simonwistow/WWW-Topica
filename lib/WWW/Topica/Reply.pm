@@ -66,6 +66,8 @@ sub parse {
     ($self->{subject})      = ($html =~ m!NAME\="subject" SIZE\=28 VALUE\="(.+?)"!s);    
     ($self->{body})         = ($html =~ m!<TEXTAREA NAME\="body" ROWS\=13 COLS\=70 WRAP\=AUTO>(.+?)</TEXTAREA>!s);
 
+    return unless $self->{body};
+
     # the body is quoted as if ready to reply. So we need to clean that up.
     $self->{body} =~ s!^(.+?) wrote:!!sg;
     $self->{body} =~ s!^>\s?!!msg;
