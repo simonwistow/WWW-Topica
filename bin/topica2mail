@@ -17,21 +17,13 @@ topica2mail - convert a Topica mailing list into a mail box
 
 =head1 USAGE
 
-    topica2mail <list-id> <login> <password> <mailbox> [ -d ] [ -l ] [ -s <start> ] [ -e <end> ]
+    topica2mail <list-id> <mailbox> [login] [password] [ -d ] [ -l ] [ -s <start> ] [ -e <end> ]
 
 =head1 OPTIONS
 
 =head2 list-id
 
 The name of the list
-
-=head2 login
-
-Your login email address
-
-=head2 password
-
-Your password
 
 =head2 mailbox
 
@@ -45,6 +37,18 @@ will turn into
     foo-2004-10
 
 etc etc
+
+=head2 login
+
+Your login email address. 
+
+If you don't pass in your login and password you may not be able to read some lists.
+
+=head2 password
+
+Your password
+
+If you don't pass in your login and password you may not be able to read some lists.
 
 =head2 -d
 
@@ -75,14 +79,18 @@ Distributed under the same terms as Perl itself
 =cut 
 
 
-
+my $email;
+my $pass;
 my $list  = shift || die "You must pass a list name\n";
-my $email = shift || die "You must pass an email login\n";
-my $pass  = shift || die "You must pass a password\n";
 my $out   = shift || die "You must pass a mailbox\n";
 
+if (@ARGV && $ARGV[0] !~ /^-/ && $ARGV[1] !~ /^-/) {
+    $email = shift;
+    $pass  = shift;
+}
+
 my %opts = (
-                 list     => $list,
+                list     => $list,
                 email    => $email,
                 password => $pass,
                 debug    => 0,
