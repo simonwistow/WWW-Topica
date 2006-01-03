@@ -62,11 +62,16 @@ Parse the html to get message ids and next & prev offsets.
 
 sub parse {
     my ($self, $html) = @_;
-    
 
-    ($self->{eto},undef,$self->{from})    =  ($html =~ m!window.open\('/lists/UKR/read/post.html\?mode\=replytosender\&mid=\d+\&eto\=([^']+)'(.+?)return true">(.+?)</A>!s);
+    
+    ($self->{eto},undef,$self->{from})    =  ($html =~ m!window.open\('/lists/[^/]+/read/post.html\?mode\=replytosender\&mid=\d+\&eto\=([^']+)'(.+?)return true">(.+?)</A>!s);
+    if (!defined $self->{eto}) {
+        ($self->{from}) = ($html =~ m!<FONT FACE\="Geneva,Verdana,Sans-Serif" SIZE\="-2">&nbsp;([^<]+)</FONT>!s);
+    }
     (undef,$self->{date})  =  ($html =~ m!http://lists.topica.com/lists/read/images/icon_clock.gif(.+?)<NOBR>(.+?)&nbsp;<\/NOBR>!s);    
     (undef, $self->{subject}) = ($html =~ m!<FONT CLASS\="headline"(.+?)COLOR="#990099"><B>(.+?)</B>!s);
+    ($self->{body}) = ($html =~ m!            <FONT FACE\="Geneva,Verdana,Sans-Serif" SIZE\="-2">(.+?)</FONT>!s);
+
 }
 
 =head2 id
@@ -125,6 +130,18 @@ sub from {
     my $from =  $_[0]->{from} || "";
     return $from;
 }
+
+=head2 body 
+
+Get the body of the mail.
+
+=cut
+
+sub body {
+    my $body = $_[0]->{body} || "";
+    return $body;
+}
+
 1;
 
 =head1 AUTHOR
